@@ -1,7 +1,7 @@
 '''2D discrete curvelet transform in jax'''
 import jax.numpy as jnp
-from jax.config import config
-config.update("jax_enable_x64", True)
+import jax
+jax.config.update("jax_enable_x64", True)
 
 
 def jax_perform_fft2(spatial_input):
