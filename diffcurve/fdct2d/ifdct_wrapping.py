@@ -7,6 +7,56 @@ _SQRT_2 = np.sqrt(2)
 _INV_SQRT_2 = 1.0 / _SQRT_2
 
 
+def _bilinear_resize(array, new_shape):
+    """
+    Custom bilinear interpolation resize to replace scipy.ndimage.zoom.
+    
+    Parameters
+    ----------
+    array : ndarray
+        Input array to resize
+    new_shape : tuple
+        Target shape (height, width)
+        
+    Returns
+    -------
+    ndarray
+        Resized array using bilinear interpolation
+    """
+    old_height, old_width = array.shape
+    new_height, new_width = new_shape
+    
+    # Create coordinate grids for the new shape
+    y_new = np.linspace(0, old_height - 1, new_height)
+    x_new = np.linspace(0, old_width - 1, new_width)
+    
+    # Create meshgrid
+    x_grid, y_grid = np.meshgrid(x_new, y_new)
+    
+    # Get integer coordinates
+    x0 = np.floor(x_grid).astype(int)
+    y0 = np.floor(y_grid).astype(int)
+    x1 = np.clip(x0 + 1, 0, old_width - 1)
+    y1 = np.clip(y0 + 1, 0, old_height - 1)
+    
+    # Ensure coordinates are within bounds
+    x0 = np.clip(x0, 0, old_width - 1)
+    y0 = np.clip(y0, 0, old_height - 1)
+    
+    # Get fractional parts
+    dx = x_grid - x0
+    dy = y_grid - y0
+    
+    # Bilinear interpolation
+    # f(x,y) ≈ f(0,0)(1-x)(1-y) + f(1,0)x(1-y) + f(0,1)(1-x)y + f(1,1)xy
+    output = (array[y0, x0] * (1 - dx) * (1 - dy) +
+              array[y0, x1] * dx * (1 - dy) +
+              array[y1, x0] * (1 - dx) * dy +
+              array[y1, x1] * dx * dy)
+    
+    return output
+
+
 def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
     """
     Inverse Fast Discrete Curvelet Transform via wedge wrapping.
@@ -207,11 +257,9 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             
             # Ensure window functions match wrapped_data shape
             if wl_left.shape != wrapped_data.shape:
-                from scipy.ndimage import zoom
-                zoom_factor_0 = wrapped_data.shape[0] / wl_left.shape[0]
-                zoom_factor_1 = wrapped_data.shape[1] / wl_left.shape[1]
-                wl_left = zoom(wl_left, (zoom_factor_0, zoom_factor_1), order=1)
-                wr_right = zoom(wr_right, (zoom_factor_0, zoom_factor_1), order=1)
+                target_shape = wrapped_data.shape
+                wl_left = _bilinear_resize(wl_left, target_shape)
+                wr_right = _bilinear_resize(wr_right, target_shape)
             
             wrapped_data = wrapped_data * (wl_left * wr_right)
             
@@ -355,11 +403,9 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             
             # Ensure window functions match wrapped_data shape
             if wl_left.shape != wrapped_data.shape:
-                from scipy.ndimage import zoom
-                zoom_factor_0 = wrapped_data.shape[0] / wl_left.shape[0]
-                zoom_factor_1 = wrapped_data.shape[1] / wl_left.shape[1]
-                wl_left = zoom(wl_left, (zoom_factor_0, zoom_factor_1), order=1)
-                wr_right = zoom(wr_right, (zoom_factor_0, zoom_factor_1), order=1)
+                target_shape = wrapped_data.shape
+                wl_left = _bilinear_resize(wl_left, target_shape)
+                wr_right = _bilinear_resize(wr_right, target_shape)
             
             wrapped_data = wrapped_data * (wl_left * wr_right)
             
