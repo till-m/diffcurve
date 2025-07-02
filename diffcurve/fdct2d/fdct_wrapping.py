@@ -7,6 +7,10 @@ from .fdct_wrapping_window import fdct_wrapping_window
 _SQRT_2 = np.sqrt(2)
 _HALF = 0.5
 
+# MATLAB-style rounding function (round half away from zero)
+def _matlab_round(x):
+    return np.floor(x + 0.5).astype(int)
+
 
 def _create_lowpass_filter(M1, M2, height=None, width=None):
     """Create lowpass filter for curvelet transform."""
@@ -46,18 +50,35 @@ def _create_lowpass_filter(M1, M2, height=None, width=None):
 
 
 def _compute_wedge_ticks(angles_per_quad, M_horiz):
-    """Compute wedge tick positions for angular decomposition."""
-    step = _HALF / angles_per_quad
+    """
+    Compute wedge tick positions for angular decomposition.
+    
+    Exactly replicates MATLAB's algorithm:
+    wedge_ticks_left = round((0:(1/(2*nbangles_perquad)):.5)*2*floor(4*M_horiz) + 1);
+    wedge_ticks_right = 2*floor(4*M_horiz) + 2 - wedge_ticks_left;
+    """
     # Cache expensive floor operation
     floor_4M_horiz = int(np.floor(4*M_horiz))
     scale_factor = 2 * floor_4M_horiz
     
-    wedge_ticks_left = np.round(np.arange(0, _HALF + step, step) * scale_factor + 1).astype(int)
+    # MATLAB: (0:(1/(2*nbangles_perquad)):.5)
+    # This creates a sequence from 0 to 0.5 with step 1/(2*nbangles_perquad)
+    step = 1.0 / (2 * angles_per_quad)
+    sequence = np.arange(0, 0.5 + step, step)
+    
+    # MATLAB: round(...*2*floor(4*M_horiz) + 1)
+    # Use MATLAB-style rounding (round half away from zero) instead of Python's round half to even
+    wedge_ticks_left = _matlab_round(sequence * scale_factor + 1)
+    
+    # MATLAB: 2*floor(4*M_horiz) + 2 - wedge_ticks_left
     wedge_ticks_right = scale_factor + 2 - wedge_ticks_left
     
+    # MATLAB conditional for odd/even angles_per_quad
     if angles_per_quad % 2:
+        # MATLAB: [wedge_ticks_left, wedge_ticks_right(end:-1:1)]
         wedge_ticks = np.concatenate([wedge_ticks_left, wedge_ticks_right[::-1]])
     else:
+        # MATLAB: [wedge_ticks_left, wedge_ticks_right((end-1):-1:1)]
         wedge_ticks = np.concatenate([wedge_ticks_left, wedge_ticks_right[-2::-1]])
         
     return wedge_ticks
@@ -209,19 +230,19 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
             
             wedge_ticks = _compute_wedge_ticks(angles_per_quad, M_horiz)
                 
-            wedge_endpoints = wedge_ticks[1::2]  # 2:2:(end-1)
+            wedge_endpoints = wedge_ticks[1:-1:2]  # 2:2:(end-1)
             wedge_midpoints = (wedge_endpoints[:-1] + wedge_endpoints[1:]) / 2
             
             # Left corner wedge
             angle_idx += 1
-            first_wedge_endpoint_vert = round(2*int(np.floor(4*M_vert))/(2*angles_per_quad) + 1)
+            first_wedge_endpoint_vert = _matlab_round(2*int(np.floor(4*M_vert))/(2*angles_per_quad) + 1)
             length_corner_wedge = int(np.floor(4*M_vert)) - int(np.floor(M_vert)) + int(np.ceil(first_wedge_endpoint_vert/4))
             Y_corner = np.arange(1, length_corner_wedge + 1)
             XX, YY = np.meshgrid(np.arange(1, 2*int(np.floor(4*M_horiz)) + 2), Y_corner)
             
             width_wedge = wedge_endpoints[1] + wedge_endpoints[0] - 1
             slope_wedge = (int(np.floor(4*M_horiz)) + 1 - wedge_endpoints[0]) / int(np.floor(4*M_vert))
-            left_line = np.round(2 - wedge_endpoints[0] + slope_wedge * (Y_corner - 1)).astype(int)
+            left_line = np.floor(2 - wedge_endpoints[0] + slope_wedge * (Y_corner - 1) + 0.5).astype(int)
             
             wrapped_data = np.zeros((length_corner_wedge, width_wedge), dtype=complex)
             wrapped_XX = np.zeros((length_corner_wedge, width_wedge))
@@ -235,7 +256,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
             for row_idx, row in enumerate(Y_corner):
                 width_range = np.arange(width_wedge)
                 cols = left_line[row_idx] + np.mod(width_range - (left_line[row_idx] - first_col), width_wedge)
-                admissible_cols = np.round(0.5 * (cols + 1 + np.abs(cols - 1))).astype(int)
+                admissible_cols = np.floor(0.5 * (cols + 1 + np.abs(cols - 1)) + 0.5).astype(int)
                 new_row = 1 + (row - first_row) % length_corner_wedge
                 
                 cols_mask = cols > 0
@@ -297,7 +318,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
                 angle_idx += 1
                 width_wedge = wedge_endpoints[subl] - wedge_endpoints[subl-2] + 1
                 slope_wedge = (floor_4M_horiz + 1 - wedge_endpoints[subl-1]) / floor_4M_vert
-                left_line = np.round(wedge_endpoints[subl-2] + slope_wedge * (Y - 1)).astype(int)
+                left_line = np.floor(wedge_endpoints[subl-2] + slope_wedge * (Y - 1) + 0.5).astype(int)
                 
                 wrapped_data = np.zeros((length_wedge, width_wedge), dtype=complex)
                 wrapped_XX = np.zeros((length_wedge, width_wedge))
@@ -344,7 +365,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
             angle_idx += 1
             width_wedge = 4*int(np.floor(4*M_horiz)) + 3 - wedge_endpoints[-1] - wedge_endpoints[-2]
             slope_wedge = (int(np.floor(4*M_horiz)) + 1 - wedge_endpoints[-1]) / int(np.floor(4*M_vert))
-            left_line = np.round(wedge_endpoints[-2] + slope_wedge * (Y_corner - 1)).astype(int)
+            left_line = np.floor(wedge_endpoints[-2] + slope_wedge * (Y_corner - 1) + 0.5).astype(int)
             
             wrapped_data = np.zeros((length_corner_wedge, width_wedge), dtype=complex)
             wrapped_XX = np.zeros((length_corner_wedge, width_wedge))
@@ -361,7 +382,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
             for row_idx, row in enumerate(Y_corner):
                 width_range = np.arange(width_wedge)
                 cols = left_line[row_idx] + np.mod(width_range - (left_line[row_idx] - first_col), width_wedge)
-                admissible_cols = np.round(0.5 * (cols + max_col - np.abs(cols - max_col))).astype(int)
+                admissible_cols = np.floor(0.5 * (cols + max_col - np.abs(cols - max_col)) + 0.5).astype(int)
                 new_row = 1 + (row - first_row) % length_corner_wedge
 
                 cols_mask = cols <= max_col
