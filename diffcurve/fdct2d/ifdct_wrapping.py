@@ -2,6 +2,10 @@ import numpy as np
 from numpy.fft import fft2, ifft2, fftshift, ifftshift
 from .fdct_wrapping_window import fdct_wrapping_window
 
+# Cache commonly used constants
+_SQRT_2 = np.sqrt(2)
+_INV_SQRT_2 = 1.0 / _SQRT_2
+
 
 def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
     """
@@ -160,9 +164,10 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
                        ((length_corner_wedge + 1) % 2) * (quadrant - 2 == (quadrant - 2) % 2)
             first_col = int(np.floor(4 * M_horiz)) + 2 - int(np.ceil((width_wedge + 1) / 2)) + \
                        ((width_wedge + 1) % 2) * (quadrant - 3 == (quadrant - 3) % 2)
-            
+
             for row_idx, row in enumerate(Y_corner):
-                cols = left_line[row_idx] + np.mod(np.arange(width_wedge) - (left_line[row_idx] - first_col), width_wedge)
+                width_range = np.arange(width_wedge)
+                cols = left_line[row_idx] + np.mod(width_range - (left_line[row_idx] - first_col), width_wedge)
                 new_row = 1 + (row - first_row) % length_corner_wedge
                 admissible_cols = np.round(0.5 * (cols + 1 + np.abs(cols - 1))).astype(int)
                 wrapped_XX[new_row - 1, :] = XX[row_idx, admissible_cols - 1]
@@ -189,12 +194,13 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             
             # Get coefficient and transform
             if is_real == 0:
-                wrapped_data = fftshift(fft2(ifftshift(coeffs[j_idx][angle_idx - 1]))) / np.sqrt(coeffs[j_idx][angle_idx - 1].size)
+                coeff = coeffs[j_idx][angle_idx - 1]
+                wrapped_data = fftshift(fft2(ifftshift(coeff))) / np.sqrt(coeff.size)
                 wrapped_data = np.rot90(wrapped_data, quadrant - 1)
             else:
                 if angle_idx - 1 + num_angles[j_idx] // 2 < len(coeffs[j_idx]):
                     x = coeffs[j_idx][angle_idx - 1] + 1j * coeffs[j_idx][angle_idx - 1 + num_angles[j_idx] // 2]
-                    wrapped_data = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size) / np.sqrt(2)
+                    wrapped_data = fftshift(fft2(ifftshift(x))) * _INV_SQRT_2 / np.sqrt(x.size)
                     wrapped_data = np.rot90(wrapped_data, quadrant - 1)
                 else:
                     continue
@@ -336,12 +342,13 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             
             # Get coefficient and transform
             if is_real == 0:
-                wrapped_data = fftshift(fft2(ifftshift(coeffs[j_idx][angle_idx - 1]))) / np.sqrt(coeffs[j_idx][angle_idx - 1].size)
+                coeff = coeffs[j_idx][angle_idx - 1]
+                wrapped_data = fftshift(fft2(ifftshift(coeff))) / np.sqrt(coeff.size)
                 wrapped_data = np.rot90(wrapped_data, quadrant - 1)
             else:
                 if angle_idx - 1 + num_angles[j_idx] // 2 < len(coeffs[j_idx]):
                     x = coeffs[j_idx][angle_idx - 1] + 1j * coeffs[j_idx][angle_idx - 1 + num_angles[j_idx] // 2]
-                    wrapped_data = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size) / np.sqrt(2)
+                    wrapped_data = fftshift(fft2(ifftshift(x))) * _INV_SQRT_2 / np.sqrt(x.size)
                     wrapped_data = np.rot90(wrapped_data, quadrant - 1)
                 else:
                     continue
