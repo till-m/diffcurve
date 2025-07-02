@@ -22,3 +22,5 @@ __pycache__/
 __pycache__/
 /save_curvelet_systems.ipynb
 /experimental
+
+uv.lock

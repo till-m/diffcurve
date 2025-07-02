@@ -3,60 +3,58 @@ from numpy.fft import fft2, ifft2, fftshift, ifftshift
 from .fdct_wrapping_window import fdct_wrapping_window
 
 
-def ifdct_wrapping(C, is_real=0, M=None, N=None):
+def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
     """
-    Inverse Fast Discrete Curvelet Transform via wedge wrapping - Version 1.0
-    This is in fact the adjoint, also the pseudo-inverse
+    Inverse Fast Discrete Curvelet Transform via wedge wrapping.
     
-    This is a direct Python port of ifdct_wrapping.m by Laurent Demanet, 2004.
+    Computes the adjoint/pseudo-inverse of the curvelet transform.
+    Ported from ifdct_wrapping.m by Laurent Demanet, 2004.
     
-    Parameters:
-    -----------
-    C : list of lists
-        Cell array containing curvelet coefficients (see description in fdct_wrapping)
+    Parameters
+    ----------
+    coeffs : list of lists
+        Curvelet coefficients from fdct_wrapping
     is_real : int, optional
-        As used in fdct_wrapping (default: 0)
-    M, N : int, optional
-        Size of the image to be recovered (not necessary if finest = 2)
+        Transform type: 0 for complex, 1 for real (default: 0)
+    height, width : int, optional
+        Output image dimensions (not needed if finest=2)
     
-    Returns:
-    --------
+    Returns
+    -------
     x : ndarray
-        M-by-N matrix
+        Reconstructed image
     """
     # Initialization
-    nbscales = len(C)
-    nbangles_coarse = len(C[1])
+    num_scales = len(coeffs)
+    num_angles_coarse = len(coeffs[1])
     
-    # MATLAB: nbangles = [1, nbangles_coarse .* 2.^(ceil((nbscales-(nbscales:-1:2))/2))];
-    # nbscales:-1:2 means [nbscales, nbscales-1, ..., 2]
-    # So nbscales-(nbscales:-1:2) means [0, 1, 2, ..., nbscales-2]
-    nbangles = [1]
-    scales_sequence = list(range(nbscales, 1, -1))  # nbscales:-1:2
-    for k, scale_val in enumerate(scales_sequence):
-        diff = nbscales - scale_val  # This gives [0, 1, 2, ..., nbscales-2]
-        nbangles.append(nbangles_coarse * (2 ** int(np.ceil(diff / 2))))
+    # Initialize angle counts for each scale
+    num_angles = [1]
+    scales_sequence = list(range(num_scales, 1, -1))
+    for scale_val in scales_sequence:
+        diff = num_scales - scale_val
+        num_angles.append(num_angles_coarse * (2 ** int(np.ceil(diff / 2))))
     
     # Determine finest parameter
-    if len(C[-1]) == 1:
+    if len(coeffs[-1]) == 1:
         finest = 2
     else:
         finest = 1
         
     if finest == 2:
-        nbangles[nbscales - 1] = 1
+        num_angles[num_scales - 1] = 1
     
     # Determine output dimensions
-    if M is None or N is None:
+    if height is None or width is None:
         if finest == 1:
-            raise ValueError('Syntax: ifdct_wrapping(C, is_real, M, N) where the matrix to be recovered is M-by-N')
-        N1, N2 = C[-1][0].shape
+            raise ValueError('Height and width must be specified when finest=1')
+        out_height, out_width = coeffs[-1][0].shape
     else:
-        N1 = M
-        N2 = N
+        out_height = height
+        out_width = width
     
-    M1 = N1 / 3
-    M2 = N2 / 3
+    M1 = out_height / 3
+    M2 = out_width / 3
     
     if finest == 1:
         bigN1 = 2 * int(np.floor(2 * M1)) + 1
@@ -64,21 +62,21 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
         X = np.zeros((bigN1, bigN2), dtype=complex)
         
         # Initialization: preparing the lowpass filter at finest scale
-        window_length_1 = int(np.floor(2 * M1)) - int(np.floor(M1)) - 1 - (N1 % 3 == 0)
-        window_length_2 = int(np.floor(2 * M2)) - int(np.floor(M2)) - 1 - (N2 % 3 == 0)
+        window_length_1 = int(np.floor(2 * M1)) - int(np.floor(M1)) - 1 - (out_height % 3 == 0)
+        window_length_2 = int(np.floor(2 * M2)) - int(np.floor(M2)) - 1 - (out_width % 3 == 0)
         coord_1 = np.linspace(0, 1, window_length_1 + 1)
         coord_2 = np.linspace(0, 1, window_length_2 + 1)
         wl_1, wr_1 = fdct_wrapping_window(coord_1)
         wl_2, wr_2 = fdct_wrapping_window(coord_2)
         lowpass_1 = np.concatenate([wl_1, np.ones(2 * int(np.floor(M1)) + 1), wr_1])
-        if N1 % 3 == 0:
+        if out_height % 3 == 0:
             lowpass_1 = np.concatenate([[0], lowpass_1, [0]])
         lowpass_2 = np.concatenate([wl_2, np.ones(2 * int(np.floor(M2)) + 1), wr_2])
-        if N2 % 3 == 0:
+        if out_width % 3 == 0:
             lowpass_2 = np.concatenate([[0], lowpass_2, [0]])
         lowpass = np.outer(lowpass_1, lowpass_2)
         
-        scales = list(range(nbscales, 1, -1))  # nbscales:-1:2
+        scales = list(range(num_scales, 1, -1))
     else:
         M1 = M1 / 2
         M2 = M2 / 2
@@ -98,7 +96,7 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
         lowpass = np.outer(lowpass_1, lowpass_2)
         hipass_finest = np.sqrt(1 - lowpass**2)
         
-        scales = list(range(nbscales - 1, 1, -1))  # (nbscales-1):-1:2
+        scales = list(range(num_scales - 1, 1, -1))
     
     # Loop: pyramidal reconstruction
     Xj_topleft_1 = 1  # MATLAB 1-based indexing
@@ -121,22 +119,22 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
         hipass = np.sqrt(1 - lowpass_next**2)
         Xj = np.zeros((2 * int(np.floor(4 * M1)) + 1, 2 * int(np.floor(4 * M2)) + 1), dtype=complex)
         
-        # Loop: angles
-        l = 0
-        nbquadrants = 2 + 2 * (not is_real)
-        nbangles_perquad = nbangles[j_idx] // 4
+        # Angular reconstruction
+        angle_idx = 0
+        num_quadrants = 2 + 2 * (not is_real)
+        angles_per_quad = num_angles[j_idx] // 4
         
-        for quadrant in range(1, nbquadrants + 1):
+        for quadrant in range(1, num_quadrants + 1):
             M_horiz = M2 * (quadrant % 2 == 1) + M1 * (quadrant % 2 == 0)
             M_vert = M1 * (quadrant % 2 == 1) + M2 * (quadrant % 2 == 0)
             
-            if nbangles_perquad % 2:
-                step = 0.5 / nbangles_perquad
+            if angles_per_quad % 2:
+                step = 0.5 / angles_per_quad
                 wedge_ticks_left = np.round(np.arange(0, 0.5 + step, step) * 2 * int(np.floor(4 * M_horiz)) + 1).astype(int)
                 wedge_ticks_right = 2 * int(np.floor(4 * M_horiz)) + 2 - wedge_ticks_left
                 wedge_ticks = np.concatenate([wedge_ticks_left, wedge_ticks_right[::-1]])
             else:
-                step = 0.5 / nbangles_perquad
+                step = 0.5 / angles_per_quad
                 wedge_ticks_left = np.round(np.arange(0, 0.5 + step, step) * 2 * int(np.floor(4 * M_horiz)) + 1).astype(int)
                 wedge_ticks_right = 2 * int(np.floor(4 * M_horiz)) + 2 - wedge_ticks_left
                 wedge_ticks = np.concatenate([wedge_ticks_left, wedge_ticks_right[-2::-1]])
@@ -145,10 +143,10 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
             wedge_midpoints = (wedge_endpoints[:-1] + wedge_endpoints[1:]) / 2
             
             # Left corner wedge
-            l += 1
-            if l - 1 >= len(C[j_idx]):
+            angle_idx += 1
+            if angle_idx - 1 >= len(coeffs[j_idx]):
                 continue
-            first_wedge_endpoint_vert = round(2 * int(np.floor(4 * M_vert)) / (2 * nbangles_perquad) + 1)
+            first_wedge_endpoint_vert = round(2 * int(np.floor(4 * M_vert)) / (2 * angles_per_quad) + 1)
             length_corner_wedge = int(np.floor(4 * M_vert)) - int(np.floor(M_vert)) + int(np.ceil(first_wedge_endpoint_vert / 4))
             Y_corner = np.arange(1, length_corner_wedge + 1)
             XX, YY = np.meshgrid(np.arange(1, 2 * int(np.floor(4 * M_horiz)) + 2), Y_corner)
@@ -191,11 +189,11 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
             
             # Get coefficient and transform
             if is_real == 0:
-                wrapped_data = fftshift(fft2(ifftshift(C[j_idx][l - 1]))) / np.sqrt(C[j_idx][l - 1].size)
+                wrapped_data = fftshift(fft2(ifftshift(coeffs[j_idx][angle_idx - 1]))) / np.sqrt(coeffs[j_idx][angle_idx - 1].size)
                 wrapped_data = np.rot90(wrapped_data, quadrant - 1)
             else:
-                if l - 1 + nbangles[j_idx] // 2 < len(C[j_idx]):
-                    x = C[j_idx][l - 1] + 1j * C[j_idx][l - 1 + nbangles[j_idx] // 2]
+                if angle_idx - 1 + num_angles[j_idx] // 2 < len(coeffs[j_idx]):
+                    x = coeffs[j_idx][angle_idx - 1] + 1j * coeffs[j_idx][angle_idx - 1 + num_angles[j_idx] // 2]
                     wrapped_data = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size) / np.sqrt(2)
                     wrapped_data = np.rot90(wrapped_data, quadrant - 1)
                 else:
@@ -230,9 +228,9 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
             first_row = int(np.floor(4 * M_vert)) + 2 - int(np.ceil((length_wedge + 1) / 2)) + \
                        ((length_wedge + 1) % 2) * (quadrant - 2 == (quadrant - 2) % 2)
             
-            for subl in range(2, nbangles_perquad):  # 2:(nbangles_perquad-1)
-                l += 1
-                if l - 1 >= len(C[j_idx]):
+            for subl in range(2, angles_per_quad):
+                angle_idx += 1
+                if angle_idx - 1 >= len(coeffs[j_idx]):
                     continue
                 width_wedge = wedge_endpoints[subl] - wedge_endpoints[subl - 2] + 1
                 slope_wedge = (int(np.floor(4 * M_horiz)) + 1 - wedge_endpoints[subl - 1]) / int(np.floor(4 * M_vert))
@@ -264,10 +262,10 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
                 
                 # Get coefficient and transform
                 if is_real == 0:
-                    wrapped_data = fftshift(fft2(ifftshift(C[j_idx][l - 1]))) / np.sqrt(C[j_idx][l - 1].size)
+                    wrapped_data = fftshift(fft2(ifftshift(coeffs[j_idx][angle_idx - 1]))) / np.sqrt(coeffs[j_idx][angle_idx - 1].size)
                     wrapped_data = np.rot90(wrapped_data, quadrant - 1)
                 else:
-                    x = C[j_idx][l - 1] + 1j * C[j_idx][l - 1 + nbangles[j_idx] // 2]
+                    x = coeffs[j_idx][angle_idx - 1] + 1j * coeffs[j_idx][angle_idx - 1 + num_angles[j_idx] // 2]
                     wrapped_data = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size) / np.sqrt(2)
                     wrapped_data = np.rot90(wrapped_data, quadrant - 1)
                 
@@ -294,8 +292,8 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
                             Xj[row - 1, cols[:n_cols][valid_indices] - 1] += wrapped_data[new_row - 1, :n_cols][valid_indices]
             
             # Right corner wedge
-            l += 1
-            if l - 1 >= len(C[j_idx]):
+            angle_idx += 1
+            if angle_idx - 1 >= len(coeffs[j_idx]):
                 continue
             width_wedge = 4 * int(np.floor(4 * M_horiz)) + 3 - wedge_endpoints[-1] - wedge_endpoints[-2]
             slope_wedge = (int(np.floor(4 * M_horiz)) + 1 - wedge_endpoints[-1]) / int(np.floor(4 * M_vert))
@@ -338,11 +336,11 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
             
             # Get coefficient and transform
             if is_real == 0:
-                wrapped_data = fftshift(fft2(ifftshift(C[j_idx][l - 1]))) / np.sqrt(C[j_idx][l - 1].size)
+                wrapped_data = fftshift(fft2(ifftshift(coeffs[j_idx][angle_idx - 1]))) / np.sqrt(coeffs[j_idx][angle_idx - 1].size)
                 wrapped_data = np.rot90(wrapped_data, quadrant - 1)
             else:
-                if l - 1 + nbangles[j_idx] // 2 < len(C[j_idx]):
-                    x = C[j_idx][l - 1] + 1j * C[j_idx][l - 1 + nbangles[j_idx] // 2]
+                if angle_idx - 1 + num_angles[j_idx] // 2 < len(coeffs[j_idx]):
+                    x = coeffs[j_idx][angle_idx - 1] + 1j * coeffs[j_idx][angle_idx - 1 + num_angles[j_idx] // 2]
                     wrapped_data = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size) / np.sqrt(2)
                     wrapped_data = np.rot90(wrapped_data, quadrant - 1)
                 else:
@@ -406,33 +404,31 @@ def ifdct_wrapping(C, is_real=0, M=None, N=None):
     # Coarsest wavelet level
     M1 = M1 / 2
     M2 = M2 / 2
-    Xj = fftshift(fft2(ifftshift(C[0][0]))) / np.sqrt(C[0][0].size)
+    Xj = fftshift(fft2(ifftshift(coeffs[0][0]))) / np.sqrt(coeffs[0][0].size)
     loc_1 = Xj_topleft_1 + np.arange(2 * int(np.floor(4 * M1)) + 1) - 1
     loc_2 = Xj_topleft_2 + np.arange(2 * int(np.floor(4 * M2)) + 1) - 1
     X[np.ix_(loc_1, loc_2)] = X[np.ix_(loc_1, loc_2)] + Xj * lowpass
     
     # Finest level
-    M1 = N1 / 3
-    M2 = N2 / 3
+    M1 = out_height / 3
+    M2 = out_width / 3
     if finest == 1:
-        # Folding back onto N1-by-N2 matrix
-        shift_1 = int(np.floor(2 * M1)) - int(np.floor(N1 / 2))
-        shift_2 = int(np.floor(2 * M2)) - int(np.floor(N2 / 2))
+        # Folding back onto output matrix
+        shift_1 = int(np.floor(2 * M1)) - int(np.floor(out_height / 2))
+        shift_2 = int(np.floor(2 * M2)) - int(np.floor(out_width / 2))
         
-        # MATLAB: Y = X(:,(1:N2)+shift_2);
-        Y = X[:, shift_2:shift_2 + N2]
-        Y[:, N2 - shift_2:N2] = Y[:, N2 - shift_2:N2] + X[:, :shift_2]
-        Y[:, :shift_2] = Y[:, :shift_2] + X[:, N2 + shift_2:N2 + 2 * shift_2]
-        X = Y[shift_1:shift_1 + N1, :]
-        X[N1 - shift_1:N1, :] = X[N1 - shift_1:N1, :] + Y[:shift_1, :]
-        X[:shift_1, :] = X[:shift_1, :] + Y[N1 + shift_1:N1 + 2 * shift_1, :]
+        Y = X[:, shift_2:shift_2 + out_width]
+        Y[:, out_width - shift_2:out_width] = Y[:, out_width - shift_2:out_width] + X[:, :shift_2]
+        Y[:, :shift_2] = Y[:, :shift_2] + X[:, out_width + shift_2:out_width + 2 * shift_2]
+        X = Y[shift_1:shift_1 + out_height, :]
+        X[out_height - shift_1:out_height, :] = X[out_height - shift_1:out_height, :] + Y[:shift_1, :]
+        X[:shift_1, :] = X[:shift_1, :] + Y[out_height + shift_1:out_height + 2 * shift_1, :]
     else:
-        # Extension to a N1-by-N2 matrix
-        Y = fftshift(fft2(ifftshift(C[nbscales - 1][0]))) / np.sqrt(C[nbscales - 1][0].size)
+        # Extension to output matrix
+        Y = fftshift(fft2(ifftshift(coeffs[num_scales - 1][0]))) / np.sqrt(coeffs[num_scales - 1][0].size)
         # Fix indexing for 0-based Python vs 1-based MATLAB
-        # In 0-based indexing, center is N1//2, N2//2
-        X_topleft_1 = N1 // 2 - int(np.floor(M1))
-        X_topleft_2 = N2 // 2 - int(np.floor(M2))
+        X_topleft_1 = out_height // 2 - int(np.floor(M1))
+        X_topleft_2 = out_width // 2 - int(np.floor(M2))
         loc_1 = X_topleft_1 + np.arange(2 * int(np.floor(M1)) + 1)
         loc_2 = X_topleft_2 + np.arange(2 * int(np.floor(M2)) + 1)
         Y[np.ix_(loc_1, loc_2)] = Y[np.ix_(loc_1, loc_2)] * hipass_finest + X
