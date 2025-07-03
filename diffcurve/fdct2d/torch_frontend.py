@@ -1,6 +1,6 @@
 '''2D discrete curvelet transform in torch'''
 import torch
-
+import einops
 
 def torch_perform_fft2(spatial_input):
     """Perform fast fourier transform in 2D.
@@ -33,8 +33,7 @@ def torch_fdct_2d(img, curvelet_system):
     """
     x_freq = torch_perform_fft2(img)
     conj_curvelet_system = torch.conj(curvelet_system)
-    coeffs = torch_perform_ifft2(x_freq * conj_curvelet_system)
-    coeffs = torch_perform_ifft2(x_freq * conj_curvelet_system)
+    coeffs = torch_perform_ifft2(einops.einsum(x_freq, conj_curvelet_system, '... h w, c h w -> ... c h w'))
 
     return coeffs
 
@@ -52,7 +51,9 @@ def torch_ifdct_2d(coeffs, curvelet_system, curvelet_support_size):
         curvelet basis.
     """
     coeffs_freq = torch_perform_fft2(coeffs)
-    unsqueezed_support_size = curvelet_support_size[..., None, None]
+    decom = einops.einsum(coeffs_freq, curvelet_system, '... c h w, c h w -> ... h w')
+
     decom = torch_perform_ifft2(
-        coeffs_freq * curvelet_system) * unsqueezed_support_size
+        einops.einsum(coeffs_freq, curvelet_system, '... c h w, c h w -> ... c h w'))
+    decom = einops.einsum(decom, curvelet_support_size, '... c h w, c -> ... c h w')
     return decom
