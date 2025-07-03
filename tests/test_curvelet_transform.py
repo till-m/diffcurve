@@ -80,9 +80,9 @@ class TestCurveletTransform:
         np.random.seed(111)
         img = np.random.randn(64, 64)
         
-        # Test finest=1 (curvelets at finest level)
+        # Test finest=1 (curvelets at finest level) - requires height/width
         coeffs1 = fdct_wrapping(img, finest=1)
-        reconstructed1 = ifdct_wrapping(coeffs1)
+        reconstructed1 = ifdct_wrapping(coeffs1, height=64, width=64)
         mse1 = np.mean(np.abs(img - reconstructed1)**2)
         
         # Test finest=2 (wavelets at finest level)
@@ -164,7 +164,8 @@ class TestCurveletTransform:
         assert len(coeffs) == 4, f"Expected 4 scales, got {len(coeffs)}"
         
         # Check that each scale has the right structure
-        expected_angles = [1, 16, 32, 32]  # For default parameters
+        # Scale 0: coarsest (1 angle), Scale 1: 16 angles, Scale 2: 32 angles, Scale 3: finest (1 angle for finest=2)
+        expected_angles = [1, 16, 32, 1]  # For default parameters with finest=2
         for j, expected in enumerate(expected_angles):
             actual = len(coeffs[j])
             assert actual == expected, f"Scale {j}: expected {expected} angles, got {actual}"

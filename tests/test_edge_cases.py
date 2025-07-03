@@ -14,8 +14,8 @@ class TestEdgeCases:
     
     def test_minimum_size_image(self):
         """Test smallest reasonable image size."""
-        # 16x16 should be the practical minimum
-        img = np.random.randn(16, 16)
+        # 32x32 is the practical minimum for 2 scales
+        img = np.random.randn(32, 32)
         
         coeffs = fdct_wrapping(img)
         reconstructed = ifdct_wrapping(coeffs)

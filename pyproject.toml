@@ -25,5 +25,7 @@ dev = [
     "jax>=0.3.25",
     "matplotlib>=3.5.3",
     "opencv-python>=4.11.0.86",
+    "pytest>=7.4.4",
+    "pytest-cov>=4.1.0",
     "torch>=1.13.1",
 ]

@@ -110,6 +110,16 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
         For real transforms, cosine coefficients are in first two quadrants,
         sine coefficients in last two quadrants.
     """
+    # Parameter validation
+    if finest not in [1, 2]:
+        raise ValueError(f"finest must be 1 or 2, got {finest}")
+    
+    if is_real not in [0, 1]:
+        raise ValueError(f"is_real must be 0 or 1, got {is_real}")
+    
+    if num_angles_coarse % 4 != 0:
+        raise ValueError(f"num_angles_coarse must be multiple of 4, got {num_angles_coarse}")
+    
     # Take the 2D FFT
     X = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size)
     height, width = X.shape
@@ -117,6 +127,9 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
     # Set default parameters
     if num_scales is None:
         num_scales = int(ceil(log2(min(height, width)) - 3))
+    
+    if num_scales < 2:
+        raise ValueError(f"num_scales must be at least 2, got {num_scales}")
     
     # Initialize angle counts for each scale
     num_angles = [1]

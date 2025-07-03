@@ -6,6 +6,10 @@ from .fdct_wrapping_window import fdct_wrapping_window
 _SQRT_2 = np.sqrt(2)
 _INV_SQRT_2 = 1.0 / _SQRT_2
 
+# MATLAB-style rounding function (round half away from zero)
+def _matlab_round(x):
+    return np.floor(x + 0.5).astype(int)
+
 
 def _bilinear_resize(array, new_shape):
     """
@@ -184,12 +188,12 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             
             if angles_per_quad % 2:
                 step = 0.5 / angles_per_quad
-                wedge_ticks_left = np.round(np.arange(0, 0.5 + step, step) * 2 * int(np.floor(4 * M_horiz)) + 1).astype(int)
+                wedge_ticks_left = _matlab_round(np.arange(0, 0.5 + step, step) * 2 * int(np.floor(4 * M_horiz)) + 1)
                 wedge_ticks_right = 2 * int(np.floor(4 * M_horiz)) + 2 - wedge_ticks_left
                 wedge_ticks = np.concatenate([wedge_ticks_left, wedge_ticks_right[::-1]])
             else:
                 step = 0.5 / angles_per_quad
-                wedge_ticks_left = np.round(np.arange(0, 0.5 + step, step) * 2 * int(np.floor(4 * M_horiz)) + 1).astype(int)
+                wedge_ticks_left = _matlab_round(np.arange(0, 0.5 + step, step) * 2 * int(np.floor(4 * M_horiz)) + 1)
                 wedge_ticks_right = 2 * int(np.floor(4 * M_horiz)) + 2 - wedge_ticks_left
                 wedge_ticks = np.concatenate([wedge_ticks_left, wedge_ticks_right[-2::-1]])
             
@@ -200,13 +204,13 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             angle_idx += 1
             if angle_idx - 1 >= len(coeffs[j_idx]):
                 continue
-            first_wedge_endpoint_vert = round(2 * int(np.floor(4 * M_vert)) / (2 * angles_per_quad) + 1)
+            first_wedge_endpoint_vert = _matlab_round(2 * int(np.floor(4 * M_vert)) / (2 * angles_per_quad) + 1)
             length_corner_wedge = int(np.floor(4 * M_vert)) - int(np.floor(M_vert)) + int(np.ceil(first_wedge_endpoint_vert / 4))
             Y_corner = np.arange(1, length_corner_wedge + 1)
             XX, YY = np.meshgrid(np.arange(1, 2 * int(np.floor(4 * M_horiz)) + 2), Y_corner)
             width_wedge = wedge_endpoints[1] + wedge_endpoints[0] - 1
             slope_wedge = (int(np.floor(4 * M_horiz)) + 1 - wedge_endpoints[0]) / int(np.floor(4 * M_vert))
-            left_line = np.round(2 - wedge_endpoints[0] + slope_wedge * (Y_corner - 1)).astype(int)
+            left_line = _matlab_round(2 - wedge_endpoints[0] + slope_wedge * (Y_corner - 1))
             
             wrapped_XX = np.zeros((length_corner_wedge, width_wedge))
             wrapped_YY = np.zeros((length_corner_wedge, width_wedge))
@@ -219,7 +223,7 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
                 width_range = np.arange(width_wedge)
                 cols = left_line[row_idx] + np.mod(width_range - (left_line[row_idx] - first_col), width_wedge)
                 new_row = 1 + (row - first_row) % length_corner_wedge
-                admissible_cols = np.round(0.5 * (cols + 1 + np.abs(cols - 1))).astype(int)
+                admissible_cols = _matlab_round(0.5 * (cols + 1 + np.abs(cols - 1)))
                 wrapped_XX[new_row - 1, :] = XX[row_idx, admissible_cols - 1]
                 wrapped_YY[new_row - 1, :] = YY[row_idx, admissible_cols - 1]
             
@@ -266,7 +270,7 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             # Unwrapping data
             for row_idx, row in enumerate(Y_corner):
                 cols = left_line[row_idx] + np.mod(np.arange(width_wedge) - (left_line[row_idx] - first_col), width_wedge)
-                admissible_cols = np.round(0.5 * (cols + 1 + np.abs(cols - 1))).astype(int)
+                admissible_cols = _matlab_round(0.5 * (cols + 1 + np.abs(cols - 1)))
                 new_row = 1 + (row - first_row) % length_corner_wedge
                 
                 # Handle shape mismatch between admissible_cols and wrapped_data
@@ -288,7 +292,7 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
                     continue
                 width_wedge = wedge_endpoints[subl] - wedge_endpoints[subl - 2] + 1
                 slope_wedge = (int(np.floor(4 * M_horiz)) + 1 - wedge_endpoints[subl - 1]) / int(np.floor(4 * M_vert))
-                left_line = np.round(wedge_endpoints[subl - 2] + slope_wedge * (Y - 1)).astype(int)
+                left_line = _matlab_round(wedge_endpoints[subl - 2] + slope_wedge * (Y - 1))
                 
                 wrapped_XX = np.zeros((length_wedge, width_wedge))
                 wrapped_YY = np.zeros((length_wedge, width_wedge))
@@ -351,7 +355,7 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
                 continue
             width_wedge = 4 * int(np.floor(4 * M_horiz)) + 3 - wedge_endpoints[-1] - wedge_endpoints[-2]
             slope_wedge = (int(np.floor(4 * M_horiz)) + 1 - wedge_endpoints[-1]) / int(np.floor(4 * M_vert))
-            left_line = np.round(wedge_endpoints[-2] + slope_wedge * (Y_corner - 1)).astype(int)
+            left_line = _matlab_round(wedge_endpoints[-2] + slope_wedge * (Y_corner - 1))
             
             wrapped_XX = np.zeros((length_corner_wedge, width_wedge))
             wrapped_YY = np.zeros((length_corner_wedge, width_wedge))
@@ -362,8 +366,8 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             
             for row_idx, row in enumerate(Y_corner):
                 cols = left_line[row_idx] + np.mod(np.arange(width_wedge) - (left_line[row_idx] - first_col), width_wedge)
-                admissible_cols = np.round(0.5 * (cols + 2 * int(np.floor(4 * M_horiz)) + 1 - 
-                                                 np.abs(cols - (2 * int(np.floor(4 * M_horiz)) + 1)))).astype(int)
+                admissible_cols = _matlab_round(0.5 * (cols + 2 * int(np.floor(4 * M_horiz)) + 1 - 
+                                                 np.abs(cols - (2 * int(np.floor(4 * M_horiz)) + 1))))
                 new_row = 1 + (row - first_row) % length_corner_wedge
                 wrapped_XX[new_row - 1, :] = XX[row_idx, admissible_cols - 1]
                 wrapped_YY[new_row - 1, :] = YY[row_idx, admissible_cols - 1]
@@ -412,8 +416,8 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             # Unwrapping data - MATLAB line 281: Xj(row,fliplr(admissible_cols)) = Xj(row,fliplr(admissible_cols)) + wrapped_data(new_row,end:-1:1);
             for row_idx, row in enumerate(Y_corner):
                 cols = left_line[row_idx] + np.mod(np.arange(width_wedge) - (left_line[row_idx] - first_col), width_wedge)
-                admissible_cols = np.round(0.5 * (cols + 2 * int(np.floor(4 * M_horiz)) + 1 - 
-                                                 np.abs(cols - (2 * int(np.floor(4 * M_horiz)) + 1)))).astype(int)
+                admissible_cols = _matlab_round(0.5 * (cols + 2 * int(np.floor(4 * M_horiz)) + 1 - 
+                                                 np.abs(cols - (2 * int(np.floor(4 * M_horiz)) + 1))))
                 new_row = 1 + (row - first_row) % length_corner_wedge
                 flipped_cols = np.flip(admissible_cols)
                 

@@ -22,5 +22,8 @@ __pycache__/
 __pycache__/
 /save_curvelet_systems.ipynb
 /experimental
+.claude/
+.pytest_cache/
+.venv
 
 uv.lock
