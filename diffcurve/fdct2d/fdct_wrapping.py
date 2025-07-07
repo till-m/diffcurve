@@ -120,6 +120,9 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
     if num_angles_coarse % 4 != 0:
         raise ValueError(f"num_angles_coarse must be multiple of 4, got {num_angles_coarse}")
     
+    if num_angles_coarse < 8:
+        raise ValueError(f"num_angles_coarse must be at least 8, got {num_angles_coarse}")
+    
     # Take the 2D FFT
     X = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size)
     height, width = X.shape
