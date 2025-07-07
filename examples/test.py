@@ -47,7 +47,7 @@ img = lena_img_square_even
 
 dct_kwargs = {
     'is_real': False, # complex-valued curvelets
-    'finest': 2, # use wavelets at the finest level
+    'finest': 'wavelets', # use wavelets at the finest level
     'nbscales': 6,
     'nbangles_coarse': 16}
 

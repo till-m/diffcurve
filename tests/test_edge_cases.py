@@ -94,7 +94,7 @@ class TestEdgeCases:
         
         # Invalid finest parameter
         with pytest.raises((ValueError, AssertionError)):
-            fdct_wrapping(img, finest=3)
+            fdct_wrapping(img, finest='invalid')
         
         # Invalid is_real parameter
         with pytest.raises((ValueError, AssertionError)):

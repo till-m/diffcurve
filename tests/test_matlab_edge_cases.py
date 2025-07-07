@@ -31,10 +31,14 @@ class TestMatlabEdgeCases:
     
     def _run_python_transform(self, img, params):
         """Run Python curvelet transform with given parameters."""
+        # Convert MATLAB integer parameters to Python format
+        is_real_bool = bool(params['is_real'])
+        finest_str = 'curvelets' if params['finest'] == 1 else 'wavelets'
+        
         coeffs = fdct_wrapping(
             img,
-            is_real=params['is_real'],
-            finest=params['finest'],
+            is_real=is_real_bool,
+            finest=finest_str,
             num_scales=params['nbscales'],
             num_angles_coarse=params['nbangles_coarse']
         )
@@ -43,12 +47,12 @@ class TestMatlabEdgeCases:
             # For finest=1, need to provide dimensions
             reconstructed = ifdct_wrapping(
                 coeffs, 
-                is_real=params['is_real'],
+                is_real=is_real_bool,
                 height=img.shape[0],
                 width=img.shape[1]
             )
         else:
-            reconstructed = ifdct_wrapping(coeffs, is_real=params['is_real'])
+            reconstructed = ifdct_wrapping(coeffs, is_real=is_real_bool)
             
         return reconstructed
     

@@ -75,7 +75,7 @@ def ifdct_wrapping(coeffs, is_real=False, height=None, width=None):
     is_real : bool, optional
         Transform type: False for complex, True for real (default: False)
     height, width : int, optional
-        Output image dimensions (not needed if finest=2)
+        Output image dimensions (not needed if finest='wavelets')
     
     Returns
     -------
@@ -105,7 +105,7 @@ def ifdct_wrapping(coeffs, is_real=False, height=None, width=None):
     # Determine output dimensions
     if height is None or width is None:
         if finest == 1:
-            raise ValueError('Height and width must be specified when finest=1')
+            raise ValueError('Height and width must be specified when finest=\'curvelets\'')
         out_height, out_width = coeffs[-1][0].shape
     else:
         out_height = height

@@ -80,18 +80,18 @@ class TestCurveletTransform:
         np.random.seed(111)
         img = np.random.randn(64, 64)
         
-        # Test finest=1 (curvelets at finest level) - requires height/width
-        coeffs1 = fdct_wrapping(img, finest=1)
+        # Test finest='curvelets' (curvelets at finest level) - requires height/width
+        coeffs1 = fdct_wrapping(img, finest='curvelets')
         reconstructed1 = ifdct_wrapping(coeffs1, height=64, width=64)
         mse1 = np.mean(np.abs(img - reconstructed1)**2)
         
-        # Test finest=2 (wavelets at finest level)
-        coeffs2 = fdct_wrapping(img, finest=2)
+        # Test finest='wavelets' (wavelets at finest level)
+        coeffs2 = fdct_wrapping(img, finest='wavelets')
         reconstructed2 = ifdct_wrapping(coeffs2)
         mse2 = np.mean(np.abs(img - reconstructed2)**2)
         
-        assert mse1 < self.tolerance, f"Finest=1 reconstruction failed: MSE = {mse1}"
-        assert mse2 < self.tolerance, f"Finest=2 reconstruction failed: MSE = {mse2}"
+        assert mse1 < self.tolerance, f"Finest='curvelets' reconstruction failed: MSE = {mse1}"
+        assert mse2 < self.tolerance, f"Finest='wavelets' reconstruction failed: MSE = {mse2}"
     
     def test_different_scales(self):
         """Test transforms with different number of scales."""
@@ -164,8 +164,8 @@ class TestCurveletTransform:
         assert len(coeffs) == 4, f"Expected 4 scales, got {len(coeffs)}"
         
         # Check that each scale has the right structure
-        # Scale 0: coarsest (1 angle), Scale 1: 16 angles, Scale 2: 32 angles, Scale 3: finest (1 angle for finest=2)
-        expected_angles = [1, 16, 32, 1]  # For default parameters with finest=2
+        # Scale 0: coarsest (1 angle), Scale 1: 16 angles, Scale 2: 32 angles, Scale 3: finest (1 angle for finest='wavelets')
+        expected_angles = [1, 16, 32, 1]  # For default parameters with finest='wavelets'
         for j, expected in enumerate(expected_angles):
             actual = len(coeffs[j])
             assert actual == expected, f"Scale {j}: expected {expected} angles, got {actual}"

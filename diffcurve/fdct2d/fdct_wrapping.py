@@ -84,7 +84,7 @@ def _compute_wedge_ticks(angles_per_quad, M_horiz):
     return wedge_ticks
 
 
-def fdct_wrapping(x, is_real=False, finest=2, num_scales=None, num_angles_coarse=16):
+def fdct_wrapping(x, is_real=False, finest='wavelets', num_scales=None, num_angles_coarse=16):
     """
     Fast Discrete Curvelet Transform via wedge wrapping.
     
@@ -96,8 +96,8 @@ def fdct_wrapping(x, is_real=False, finest=2, num_scales=None, num_angles_coarse
         Input matrix (M x N)
     is_real : bool, optional
         Transform type: False for complex curvelets, True for real curvelets (default: False)
-    finest : int, optional
-        Finest level coefficients: 1 for curvelets, 2 for wavelets (default: 2)
+    finest : str, optional
+        Finest level coefficients: 'curvelets' or 'wavelets' (default: 'wavelets')
     num_scales : int, optional
         Number of scales including coarsest level. Default: ceil(log2(min(M,N)) - 3)
     num_angles_coarse : int, optional
@@ -111,8 +111,8 @@ def fdct_wrapping(x, is_real=False, finest=2, num_scales=None, num_angles_coarse
         sine coefficients in last two quadrants.
     """
     # Parameter validation
-    if finest not in [1, 2]:
-        raise ValueError(f"finest must be 1 or 2, got {finest}")
+    if finest not in ['curvelets', 'wavelets']:
+        raise ValueError(f"finest must be 'curvelets' or 'wavelets', got {finest}")
     
     if not isinstance(is_real, bool):
         raise ValueError(f"is_real must be a boolean, got {type(is_real).__name__}: {is_real}")
@@ -122,6 +122,9 @@ def fdct_wrapping(x, is_real=False, finest=2, num_scales=None, num_angles_coarse
     
     if num_angles_coarse < 8:
         raise ValueError(f"num_angles_coarse must be at least 8, got {num_angles_coarse}")
+    
+    # Convert string finest parameter to internal integer representation
+    finest_int = 1 if finest == 'curvelets' else 2
     
     # Take the 2D FFT
     X = fftshift(fft2(ifftshift(x))) / np.sqrt(x.size)
@@ -141,7 +144,7 @@ def fdct_wrapping(x, is_real=False, finest=2, num_scales=None, num_angles_coarse
         diff = num_scales - scale_val
         num_angles.append(num_angles_coarse * (2 ** int(ceil(diff / 2))))
     
-    if finest == 2:
+    if finest_int == 2:
         num_angles[num_scales - 1] = 1
     
     # Initialize coefficient array
@@ -154,7 +157,7 @@ def fdct_wrapping(x, is_real=False, finest=2, num_scales=None, num_angles_coarse
     M1 = height / 3
     M2 = width / 3
     
-    if finest == 1:
+    if finest_int == 1:
         # Initialization: smooth periodic extension of high frequencies
         bigN1 = 2 * int(np.floor(2 * M1)) + 1
         bigN2 = 2 * int(np.floor(2 * M2)) + 1
