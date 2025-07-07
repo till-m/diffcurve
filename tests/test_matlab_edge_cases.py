@@ -39,8 +39,8 @@ class TestMatlabEdgeCases:
             img,
             is_real=is_real_bool,
             finest=finest_str,
-            num_scales=params['num_scales'],
-            num_angles_coarse=params['num_angles_coarse']
+            num_scales=params['nbscales'],
+            num_angles_coarse=params['nbangles_coarse']
         )
         
         if params['finest'] == 1:
