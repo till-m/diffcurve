@@ -25,8 +25,8 @@ def get_curvelet_system(img_length: int, img_width: int, dct_kwargs):
     zero_coeffs = fdct_wrapping(zeros,
                                dct_kwargs['is_real'],
                                dct_kwargs['finest'],
-                               dct_kwargs['nbscales'],
-                               dct_kwargs['nbangles_coarse'])
+                               dct_kwargs['num_scales'],
+                               dct_kwargs['num_angles_coarse'])
 
     all_scales_all_wedges_curvelet_coeffs = []
     curvelet_coeff_dim = []

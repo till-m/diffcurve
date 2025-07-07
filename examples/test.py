@@ -17,20 +17,20 @@ def get_curvelet_decomposition(img, dct_kwargs):
     zero_coeffs = fdct_wrapping(zeros,
                                 dct_kwargs['is_real'],
                                 dct_kwargs['finest'],
-                                dct_kwargs['nbscales'],
-                                dct_kwargs['nbangles_coarse'])
+                                dct_kwargs['num_scales'],
+                                dct_kwargs['num_angles_coarse'])
 
     tmp = fdct_wrapping(zeros,
                             dct_kwargs['is_real'],
                             dct_kwargs['finest'],
-                            dct_kwargs['nbscales'],
-                            dct_kwargs['nbangles_coarse'])
+                            dct_kwargs['num_scales'],
+                            dct_kwargs['num_angles_coarse'])
 
     img_coeffs = fdct_wrapping(img,
                                    dct_kwargs['is_real'],
                                    dct_kwargs['finest'],
-                                   dct_kwargs['nbscales'],
-                                   dct_kwargs['nbangles_coarse'])
+                                   dct_kwargs['num_scales'],
+                                   dct_kwargs['num_angles_coarse'])
 
     all_scales_all_wedges_curvelet_coeffs = []
     for (scale_idx, curvelets_scale) in enumerate(zero_coeffs):
@@ -48,8 +48,8 @@ img = lena_img_square_even
 dct_kwargs = {
     'is_real': False, # complex-valued curvelets
     'finest': 'wavelets', # use wavelets at the finest level
-    'nbscales': 6,
-    'nbangles_coarse': 16}
+    'num_scales': 6,
+    'num_angles_coarse': 16}
 
 matlab_decomp = get_curvelet_decomposition(img, dct_kwargs)
 matlab_decomp = np.array(matlab_decomp)

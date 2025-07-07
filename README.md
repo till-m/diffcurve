@@ -28,8 +28,8 @@ We refer a curvelet system as a set of curvelet waveforms of different scales an
 dct_kwargs = {
     'is_real': 0.0, # complex-valued curvelets
     'finest': 2.0, # use wavelets at the finest scale
-    'nbscales': 6.0, # number of scales
-    'nbangles_coarse': 16.0, # number of angles at the 2nd coarsest scale
+    'num_scales': 6.0, # number of scales
+    'num_angles_coarse': 16.0, # number of angles at the 2nd coarsest scale
     }
 
 # Under the hood, the following `get_curvelet_system` function
