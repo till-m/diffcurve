@@ -1,10 +1,11 @@
 '''Get curvelet system'''
 import numpy as np
+from numpy import fft
 from diffcurve.fdct2d.numpy_frontend import perform_fft2
 from diffcurve.fdct2d import fdct_wrapping, ifdct_wrapping
 
 
-def get_curvelet_system(img_length: int, img_width: int, dct_kwargs):
+def get_curvelet_system(img_length: int, img_width: int, dct_kwargs, order='unshifted'):
     """get curvelet waveforms in the frequency domain.
 
     Waveforms in the spatial domain can be recovered in the following way:
@@ -17,6 +18,7 @@ def get_curvelet_system(img_length: int, img_width: int, dct_kwargs):
         img_length (int): the length of the image to be curvelet transformed
         img_width (int): the width of the image to be curvelet transformed
         dct_kwargs (int): settings for the curvelet transforms
+        order (str): 'frequency' (default), 'shifted', or 'unshifted' to control FFT shifting
 
     Returns:
         _type_: _description_
@@ -47,5 +49,11 @@ def get_curvelet_system(img_length: int, img_width: int, dct_kwargs):
 
     all_scales_all_wedges_curvelet_coeffs = np.array(
         all_scales_all_wedges_curvelet_coeffs)
+    
+    if order == 'shifted':
+        all_scales_all_wedges_curvelet_coeffs = fft.fftshift(all_scales_all_wedges_curvelet_coeffs, axes=(-2, -1))
+    elif order == 'unshifted':
+        all_scales_all_wedges_curvelet_coeffs = fft.ifftshift(all_scales_all_wedges_curvelet_coeffs, axes=(-2, -1))
+    
     curvelet_coeff_dim = np.array(curvelet_coeff_dim)
     return all_scales_all_wedges_curvelet_coeffs, curvelet_coeff_dim
