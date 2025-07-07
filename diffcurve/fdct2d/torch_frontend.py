@@ -51,7 +51,6 @@ def torch_ifdct_2d(coeffs, curvelet_system, curvelet_support_size):
         curvelet basis.
     """
     coeffs_freq = torch_perform_fft2(coeffs)
-    decom = einops.einsum(coeffs_freq, curvelet_system, '... c h w, c h w -> ... h w')
 
     decom = torch_perform_ifft2(
         einops.einsum(coeffs_freq, curvelet_system, '... c h w, c h w -> ... c h w'))
