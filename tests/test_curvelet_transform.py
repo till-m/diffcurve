@@ -65,8 +65,8 @@ class TestCurveletTransform:
         img = np.random.randn(64, 64)
         
         # Real transform
-        coeffs_real = fdct_wrapping(img, is_real=1)
-        reconstructed_real = ifdct_wrapping(coeffs_real, is_real=1)
+        coeffs_real = fdct_wrapping(img, is_real=True)
+        reconstructed_real = ifdct_wrapping(coeffs_real, is_real=True)
         
         # Ensure reconstruction is real
         assert np.all(np.isreal(reconstructed_real)), "Real transform should produce real output"

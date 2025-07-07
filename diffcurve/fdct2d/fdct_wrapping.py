@@ -84,7 +84,7 @@ def _compute_wedge_ticks(angles_per_quad, M_horiz):
     return wedge_ticks
 
 
-def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16):
+def fdct_wrapping(x, is_real=False, finest=2, num_scales=None, num_angles_coarse=16):
     """
     Fast Discrete Curvelet Transform via wedge wrapping.
     
@@ -94,8 +94,8 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
     ----------
     x : ndarray
         Input matrix (M x N)
-    is_real : int, optional
-        Transform type: 0 for complex curvelets, 1 for real curvelets (default: 0)
+    is_real : bool, optional
+        Transform type: False for complex curvelets, True for real curvelets (default: False)
     finest : int, optional
         Finest level coefficients: 1 for curvelets, 2 for wavelets (default: 2)
     num_scales : int, optional
@@ -114,8 +114,8 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
     if finest not in [1, 2]:
         raise ValueError(f"finest must be 1 or 2, got {finest}")
     
-    if is_real not in [0, 1]:
-        raise ValueError(f"is_real must be 0 or 1, got {is_real}")
+    if not isinstance(is_real, bool):
+        raise ValueError(f"is_real must be a boolean, got {type(is_real).__name__}: {is_real}")
     
     if num_angles_coarse % 4 != 0:
         raise ValueError(f"num_angles_coarse must be multiple of 4, got {num_angles_coarse}")
@@ -317,7 +317,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
             # Optimize FFT operations - cache size calculation
             sqrt_size = np.sqrt(wrapped_data.size)
             
-            if is_real == 0:
+            if not is_real:
                 coeffs[j_idx][angle_idx-1] = fftshift(ifft2(ifftshift(wrapped_data))) * sqrt_size
             else:
                 x_temp = fftshift(ifft2(ifftshift(wrapped_data))) * sqrt_size
@@ -368,7 +368,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
                 
                 wrapped_data = wrapped_data * (wl_left * wr_right)
                 
-                if is_real == 0:
+                if not is_real:
                     wrapped_data = np.rot90(wrapped_data, -(quadrant-1))
                     coeffs[j_idx][angle_idx-1] = fftshift(ifft2(ifftshift(wrapped_data))) * np.sqrt(wrapped_data.size)
                 else:
@@ -434,7 +434,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
             wrapped_data = wrapped_data * (wl_left * wr_right)
             wrapped_data = np.rot90(wrapped_data, -(quadrant-1))
             
-            if is_real == 0:
+            if not is_real:
                 coeffs[j_idx][angle_idx-1] = fftshift(ifft2(ifftshift(wrapped_data))) * np.sqrt(wrapped_data.size)
             else:
                 x_temp = fftshift(ifft2(ifftshift(wrapped_data))) * np.sqrt(wrapped_data.size)
@@ -446,7 +446,7 @@ def fdct_wrapping(x, is_real=0, finest=2, num_scales=None, num_angles_coarse=16)
     
     # Coarsest wavelet level
     coeffs[0][0] = fftshift(ifft2(ifftshift(Xlow))) * np.sqrt(Xlow.size)
-    if is_real == 1:
+    if is_real:
         coeffs[0][0] = np.real(coeffs[0][0])
     
     return coeffs

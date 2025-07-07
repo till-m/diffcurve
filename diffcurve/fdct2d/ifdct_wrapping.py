@@ -61,7 +61,7 @@ def _bilinear_resize(array, new_shape):
     return output
 
 
-def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
+def ifdct_wrapping(coeffs, is_real=False, height=None, width=None):
     """
     Inverse Fast Discrete Curvelet Transform via wedge wrapping.
     
@@ -72,8 +72,8 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
     ----------
     coeffs : list of lists
         Curvelet coefficients from fdct_wrapping
-    is_real : int, optional
-        Transform type: 0 for complex, 1 for real (default: 0)
+    is_real : bool, optional
+        Transform type: False for complex, True for real (default: False)
     height, width : int, optional
         Output image dimensions (not needed if finest=2)
     
@@ -247,7 +247,7 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             wr_right = fdct_wrapping_window(coord_right)[1]
             
             # Get coefficient and transform
-            if is_real == 0:
+            if not is_real:
                 coeff = coeffs[j_idx][angle_idx - 1]
                 wrapped_data = fftshift(fft2(ifftshift(coeff))) / np.sqrt(coeff.size)
                 wrapped_data = np.rot90(wrapped_data, quadrant - 1)
@@ -319,7 +319,7 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
                 wr_right = fdct_wrapping_window(coord_right)[1]
                 
                 # Get coefficient and transform
-                if is_real == 0:
+                if not is_real:
                     wrapped_data = fftshift(fft2(ifftshift(coeffs[j_idx][angle_idx - 1]))) / np.sqrt(coeffs[j_idx][angle_idx - 1].size)
                     wrapped_data = np.rot90(wrapped_data, quadrant - 1)
                 else:
@@ -393,7 +393,7 @@ def ifdct_wrapping(coeffs, is_real=0, height=None, width=None):
             wr_right = fdct_wrapping_window(coord_corner)[1]
             
             # Get coefficient and transform
-            if is_real == 0:
+            if not is_real:
                 coeff = coeffs[j_idx][angle_idx - 1]
                 wrapped_data = fftshift(fft2(ifftshift(coeff))) / np.sqrt(coeff.size)
                 wrapped_data = np.rot90(wrapped_data, quadrant - 1)

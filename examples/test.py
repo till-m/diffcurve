@@ -46,7 +46,7 @@ def get_curvelet_decomposition(img, dct_kwargs):
 img = lena_img_square_even
 
 dct_kwargs = {
-    'is_real': 0, # complex-valued curvelets
+    'is_real': False, # complex-valued curvelets
     'finest': 2, # use wavelets at the finest level
     'nbscales': 6,
     'nbangles_coarse': 16}

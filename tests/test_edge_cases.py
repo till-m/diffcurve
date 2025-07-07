@@ -98,7 +98,7 @@ class TestEdgeCases:
         
         # Invalid is_real parameter
         with pytest.raises((ValueError, AssertionError)):
-            fdct_wrapping(img, is_real=2)
+            fdct_wrapping(img, is_real="not_a_bool")
         
         # Too few scales
         with pytest.raises((ValueError, AssertionError)):
@@ -107,6 +107,10 @@ class TestEdgeCases:
         # Non-multiple of 4 angles
         with pytest.raises((ValueError, AssertionError)):
             fdct_wrapping(img, num_angles_coarse=15)
+        
+        # Too few angles
+        with pytest.raises((ValueError, AssertionError)):
+            fdct_wrapping(img, num_angles_coarse=4)
     
     def test_memory_efficiency(self):
         """Test that large images don't cause memory issues."""
